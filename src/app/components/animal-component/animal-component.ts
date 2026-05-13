@@ -17,12 +17,17 @@ import { ReactiveFormsModule } from '@angular/forms';
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './animal-component.html',
   styleUrl: './animal-component.css',
+  host: { ngSkipHydration: 'true' }
 })
 
 export class AnimalComponent {
 
   animalList: any = [];
   animalForm: FormGroup | any;
+
+  idAnimal: any;
+  editableAnimal: any = null;
+
 
   constructor(
     private cd: ChangeDetectorRef,
@@ -44,7 +49,7 @@ export class AnimalComponent {
       nombre: '',
       edad: 0,
       tipo: ''
-      });
+    });
     this.getAllAnimals();
   }
 
@@ -54,26 +59,81 @@ export class AnimalComponent {
       'Clic aquí para actualizar la lista',
       messageText
     )
-    .onTap
-    .pipe(take(1))
-    .subscribe(() => window.location.reload());
+      .onTap
+      .pipe(take(1))
+      .subscribe(() => window.location.reload());
 
   }
 
   newAnimalEntry() {
-    this.animalService.newAnimal(this.animalForm.value).subscribe(
-      () => {
-        //Redirigiendo a la ruta actual /inicio y recargando la ventana
-        this.router.navigate(['/inicio'])
-        .then(() => {
-          this.newMessage('Registro exitoso');
-        })
-      }
-    );
-  }
+    this.animalService.newAnimal(this.animalForm.value).subscribe(
+      () => {
+        //Redirigiendo a la ruta actual /inicio y recargando la ventana
+        this.router.navigate(['/inicio'])
+          .then(() => {
+            this.newMessage('Registro exitoso');
+          })
+      }
+    );
+  }
 
- ngOnChanges() {
+  ngOnChanges() {
     this.getAllAnimals();
   }
+
+  updateAnimalEntry() {
+
+    const formValue = Object.fromEntries(
+      Object.entries(this.animalForm.value).filter(([_, v]) => v !== '' && v !== null)
+    );
+
+    this.animalService.updateAnimal(this.idAnimal, formValue).subscribe(() => {
+      this.editableAnimal = null;
+      this.getAllAnimals(); // refresca la lista directamente
+      this.toastr.success('Animal editado correctamente');
+    });
+  }
+
+  deleteAnimalEntry(id: any) {
+    this.animalService.deleteAnimal(id).subscribe(() => {
+      this.getAllAnimals(); // refresca la lista directamente
+      this.toastr.success('Animal eliminado correctamente');
+    });
+  }
+
+  toggleEditAnimal(id: any) {
+
+    this.idAnimal = id;
+
+    console.log(id);
+
+    this.animalService.getOneAnimal(id).subscribe({
+
+      next: (data) => {
+
+        console.log(data);
+
+        this.animalForm.patchValue({
+          nombre: data.nombre,
+          edad: data.edad,
+          tipo: data.tipo
+        });
+
+        this.editableAnimal = data;
+
+      },
+
+      error: (err) => {
+        console.log(err);
+      }
+
+    });
+
+  }
+
+
+
+
+
 
 }
